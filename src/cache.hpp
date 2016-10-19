@@ -16,7 +16,8 @@ public:
 template <typename K, typename V> class Cache {
 public:
   explicit Cache(const int capacity) : capacity(capacity) {
-    lookUpTable = std::unordered_map<K, CacheItem<K, V> *>(capacity);
+    lookUpTable =
+        std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>>(capacity);
   };
 
   void set(const K key, const V value) {
