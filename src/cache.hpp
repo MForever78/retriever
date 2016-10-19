@@ -13,11 +13,14 @@ public:
   V value;
 };
 
-template <typename K, typename V> class Cache {
+template <typename K, typename V, class Hash = std::hash<K>,
+          class KeyEqual = std::equal_to<K>,
+          class Allocator = std::allocator<std::pair<const K, V>>>
+class Cache {
 public:
   explicit Cache(const int capacity) : capacity(capacity) {
-    lookUpTable =
-        std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>>(capacity);
+    lookUpTable = std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>, Hash,
+                                     KeyEqual, Allocator>(capacity);
   };
 
   void set(const K key, const V value) {
@@ -55,7 +58,9 @@ private:
   Cache(){};
 
   int capacity;
-  std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>> lookUpTable;
+  std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>, Hash, KeyEqual,
+                     Allocator>
+      lookUpTable;
   std::shared_mutex tableSMutex;
   List kList;
 };
