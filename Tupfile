@@ -1,0 +1,3 @@
+CXXFLAGS += -Wall -O3 -std=c++1z
+
+: foreach src/*.cpp |> clang++ $(CXXFLAGS) -c %f -o %o |> build/%B.o
