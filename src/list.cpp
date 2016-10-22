@@ -13,7 +13,17 @@ void List::unsafePushFront(Item *element) {
 }
 
 void List::pushFront(Item *element) {
-  lock_guard<mutex> guard(element->kMutex);
+  unique_lock<mutex> selfLock(element->kMutex);
+  unique_lock<mutex> frontLock;
+
+  if (front != nullptr) {
+    frontLock = unique_lock<mutex>(front->kMutex, defer_lock);
+    if (!frontLock.try_lock()) {
+      selfLock.unlock();
+      pushFront(element);
+      return;
+    }
+  }
 
   unsafePushFront(element);
 }
@@ -38,18 +48,38 @@ void List::unsafeRemove(Item *element) {
 }
 
 void List::remove(Item *element) {
-  lock_guard<mutex> guard(element->kMutex);
+  unique_lock<mutex> selfLock(element->kMutex);
+  unique_lock<mutex> nextLock, prevLock;
+
+  if (element->next) {
+    nextLock = unique_lock<mutex>(element->next->kMutex, defer_lock);
+    if (!nextLock.try_lock()) {
+      selfLock.unlock();
+      remove(element);
+      return;
+    }
+  }
+
+  if (element->prev) {
+    prevLock = unique_lock<mutex>(element->prev->kMutex, defer_lock);
+    if (!prevLock.try_lock()) {
+      if (nextLock.owns_lock()) {
+        nextLock.unlock();
+      }
+      selfLock.unlock();
+      remove(element);
+      return;
+    }
+  }
 
   unsafeRemove(element);
 }
 
 void List::moveToFront(Item *element) {
-  lock_guard<mutex> guard(element->kMutex);
-
   if (element->kList != this || front == element) {
     return;
   }
 
-  unsafeRemove(element);
-  unsafePushFront(element);
+  remove(element);
+  pushFront(element);
 }
