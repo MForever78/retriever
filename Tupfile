@@ -1,5 +1,10 @@
-CXXFLAGS += -Wall -O3 -std=c++1z -fPIC
+CXXFLAGS += -Wall -O3 -std=c++1z
 HEADERS += ./include
+BUILTLIB += ./build
 
 : foreach src/*.cpp |> clang++ $(CXXFLAGS) -I$(HEADERS) -c %f -o %o |> build/%B.o
-: build/*.o |> clang++ -shared %f -o %o |> build/libshared.dylib
+: build/*.o |> ar -rcs %o %f |> build/libretriever.a
+
+: test/main.cpp |> clang++ $(CXXFLAGS) -I$(HEADERS) -c %f -o %o |> build/unittest.o
+: build/unittest.o build/libretriever.a |> clang++ build/unittest.o -L$(BUILTLIB) -lretriever -lpthread -o %o |> build/unittest
+
