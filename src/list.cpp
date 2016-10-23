@@ -1,4 +1,6 @@
 #include "retriever/list.hpp"
+#include <cassert>
+#include <iostream>
 
 using namespace std;
 
@@ -18,6 +20,7 @@ void List::pushFront(Item *element) {
 
   if (front != nullptr) {
     frontLock = unique_lock<mutex>(front->kMutex, defer_lock);
+    assert(!frontLock.owns_lock());
     if (!frontLock.try_lock()) {
       selfLock.unlock();
       pushFront(element);

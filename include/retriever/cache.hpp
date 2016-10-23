@@ -2,6 +2,7 @@
 #define RETRIEVER_CACHE_HPP
 
 #include "list.hpp"
+#include <iostream>
 #include <memory>
 #include <shared_mutex>
 #include <unordered_map>
@@ -14,13 +15,13 @@ public:
 };
 
 template <typename K, typename V, class Hash = std::hash<K>,
-          class KeyEqual = std::equal_to<K>,
-          class Allocator = std::allocator<std::pair<const K, V>>>
+          class KeyEqual = std::equal_to<K>>
 class Cache {
 public:
   explicit Cache(const int capacity) : capacity(capacity) {
-    lookUpTable = std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>, Hash,
-                                     KeyEqual, Allocator>(capacity);
+    lookUpTable =
+        std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>, Hash, KeyEqual>(
+            capacity);
   };
 
   void set(const K key, const V value) {
@@ -33,13 +34,14 @@ public:
         auto toRemove = kList.back;
         kList.remove(toRemove);
         lookUpTable.erase(
-            lookUpTable.find(dynamic_cast<CacheItem<K, V> *>(toRemove)->key));
+            lookUpTable.find(static_cast<CacheItem<K, V> *>(toRemove)->key));
       }
-      kList.pushFront(dynamic_cast<Item *>(item.get()));
+      kList.pushFront(static_cast<Item *>(item.get()));
+      lookUpTable[key] = std::move(item);
     } else {
-      auto item = mapIt->second;
+      auto &&item = mapIt->second;
       item->value = value;
-      kList.moveToFront(dynamic_cast<Item *>(item.get()));
+      kList.moveToFront(static_cast<Item *>(item.get()));
     }
   };
 
@@ -50,7 +52,7 @@ public:
     if (mapIt == lookUpTable.end()) {
       return V();
     }
-    kList.moveToFront(dynamic_cast<Item *>(mapIt->second->get()));
+    kList.moveToFront(static_cast<Item *>(mapIt->second.get()));
     return mapIt->second->value;
   };
 
@@ -58,8 +60,7 @@ private:
   Cache(){};
 
   int capacity;
-  std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>, Hash, KeyEqual,
-                     Allocator>
+  std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>, Hash, KeyEqual>
       lookUpTable;
   std::shared_mutex tableSMutex;
   List kList;
