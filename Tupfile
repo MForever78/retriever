@@ -1,3 +1,5 @@
-CXXFLAGS += -Wall -O3 -std=c++1z
+CXXFLAGS += -Wall -O3 -std=c++1z -fPIC
+HEADERS += ./include
 
-: foreach src/*.cpp |> clang++ $(CXXFLAGS) -c %f -o %o |> build/%B.o
+: foreach src/*.cpp |> clang++ $(CXXFLAGS) -I$(HEADERS) -c %f -o %o |> build/%B.o
+: build/*.o |> clang++ -shared %f -o %o |> build/libshared.dylib
