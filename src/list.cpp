@@ -20,7 +20,6 @@ void List::pushFront(Item *element) {
 
   if (front != nullptr) {
     frontLock = unique_lock<mutex>(front->kMutex, defer_lock);
-    assert(!frontLock.owns_lock());
     if (!frontLock.try_lock()) {
       selfLock.unlock();
       pushFront(element);
@@ -79,11 +78,51 @@ void List::remove(Item *element) {
 }
 
 void List::moveToFront(Item *element) {
-  // TODO: lock self, next, prev, and front, front-next
+  unique_lock<mutex> selfLock(element->kMutex);
   if (element->kList != this || front == element) {
     return;
   }
 
-  remove(element);
-  pushFront(element);
+  unique_lock<mutex> nextLock, prevLock;
+
+  if (element->next) {
+    nextLock = unique_lock<mutex>(element->next->kMutex, defer_lock);
+    if (!nextLock.try_lock()) {
+      selfLock.unlock();
+      moveToFront(element);
+      return;
+    }
+  }
+
+  if (element->prev) {
+    prevLock = unique_lock<mutex>(element->prev->kMutex, defer_lock);
+    if (!prevLock.try_lock()) {
+      if (nextLock.owns_lock()) {
+        nextLock.unlock();
+      }
+      selfLock.unlock();
+      moveToFront(element);
+      return;
+    }
+  }
+
+  unique_lock<mutex> frontLock;
+
+  if (front != nullptr && front != element->prev) {
+    frontLock = unique_lock<mutex>(front->kMutex, defer_lock);
+    if (!frontLock.try_lock()) {
+      selfLock.unlock();
+      if (nextLock.owns_lock()) {
+        nextLock.unlock();
+      }
+      if (prevLock.owns_lock()) {
+        prevLock.unlock();
+      }
+      moveToFront(element);
+      return;
+    }
+  }
+
+  unsafeRemove(element);
+  unsafePushFront(element);
 }
