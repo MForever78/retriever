@@ -79,6 +79,7 @@ void List::remove(Item *element) {
 }
 
 void List::moveToFront(Item *element) {
+  // TODO: lock self, next, prev, and front, front-next
   if (element->kList != this || front == element) {
     return;
   }
