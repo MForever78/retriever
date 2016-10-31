@@ -18,6 +18,7 @@ template <typename K, typename V, class Hash = std::hash<K>,
           class KeyEqual = std::equal_to<K>>
 class Cache {
 public:
+  Cache() = delete;
   explicit Cache(const int capacity) : capacity(capacity) {
     lookUpTable =
         std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>, Hash, KeyEqual>(
@@ -39,7 +40,7 @@ public:
       kList.pushFront(static_cast<Item *>(item.get()));
       lookUpTable[key] = std::move(item);
     } else {
-      auto &&item = mapIt->second;
+      auto &item = mapIt->second;
       item->value = value;
       kList.moveToFront(static_cast<Item *>(item.get()));
     }
@@ -57,8 +58,6 @@ public:
   };
 
 private:
-  Cache(){};
-
   int capacity;
   std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>, Hash, KeyEqual>
       lookUpTable;

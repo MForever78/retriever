@@ -1,6 +1,4 @@
 #include "retriever/list.hpp"
-#include <cassert>
-#include <iostream>
 
 using namespace std;
 
@@ -14,6 +12,8 @@ void List::unsafePushFront(Item *element) {
   _size++;
 }
 
+// pushFront needs to lock the element itself,
+// and the front element (if exists).
 void List::pushFront(Item *element) {
   unique_lock<mutex> selfLock(element->kMutex);
   unique_lock<mutex> frontLock;
@@ -49,6 +49,8 @@ void List::unsafeRemove(Item *element) {
   _size--;
 }
 
+// remove needs to lock the element itself,
+// its prevous and next element (if exists).
 void List::remove(Item *element) {
   unique_lock<mutex> selfLock(element->kMutex);
   unique_lock<mutex> nextLock, prevLock;
@@ -77,6 +79,9 @@ void List::remove(Item *element) {
   unsafeRemove(element);
 }
 
+// moveToFront needs to lock the element itself,
+// its prevous and next element (if exists),
+// and the front element.
 void List::moveToFront(Item *element) {
   unique_lock<mutex> selfLock(element->kMutex);
   if (element->kList != this || front == element) {
