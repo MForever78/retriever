@@ -40,7 +40,6 @@ TEST_CASE("can handle basic type with single thread", "[basic]") {
   }
 }
 
-/*
 class Custom {
 public:
   Custom(string _key, int _id) : key(_key), id(_id){};
@@ -80,7 +79,8 @@ TEST_CASE("can handle custom type with single thread", "[custom]") {
     REQUIRE(cache.get(a) == 2048);
   }
 }
-*/
+
+mutex m;
 
 void runner(Cache<int, int> &cache, int l, int r) {
   for (int i = l; i < r; ++i) {
@@ -88,14 +88,18 @@ void runner(Cache<int, int> &cache, int l, int r) {
   }
 
   for (int i = l; i < r; ++i) {
-    REQUIRE(cache.get(i) == i);
+    int val = cache.get(i);
+
+    // use mutex to ensure REQUIRE's thread safety
+    lock_guard<mutex> guard(m);
+    REQUIRE(val == i);
   }
 }
 
 TEST_CASE("can handle multithreading", "[multithreading]") {
   Cache<int, int> cache(2048);
 
-  thread t1(runner, ref(cache), 0, 1000);
+  thread t1(runner, ref(cache), 0, 2000);
   thread t2(runner, ref(cache), 1000, 2000);
   t1.join();
   t2.join();
