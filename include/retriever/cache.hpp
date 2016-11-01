@@ -9,7 +9,7 @@
 
 template <typename K, typename V> class CacheItem : public Item {
 public:
-  CacheItem(K k, V v) : key(k), value(v){};
+  CacheItem(const K &k, const V &v) : key(k), value(v){};
   K key;
   V value;
 };
@@ -18,14 +18,15 @@ template <typename K, typename V, class Hash = std::hash<K>,
           class KeyEqual = std::equal_to<K>>
 class Cache {
 public:
+  using cacheItemMap =
+      std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>, Hash, KeyEqual>;
+
   Cache() = delete;
   explicit Cache(const int capacity) : capacity(capacity) {
-    lookUpTable =
-        std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>, Hash, KeyEqual>(
-            capacity);
+    lookUpTable = cacheItemMap(capacity);
   };
 
-  void set(const K key, const V value) {
+  void set(const K &key, const V &value) {
     std::unique_lock<std::shared_mutex> lock(tableSMutex);
 
     auto mapIt = lookUpTable.find(key);
@@ -46,7 +47,7 @@ public:
     }
   };
 
-  V get(const K key) {
+  V get(const K &key) {
     std::shared_lock<std::shared_mutex> lock(tableSMutex);
 
     auto mapIt = lookUpTable.find(key);
@@ -59,8 +60,7 @@ public:
 
 private:
   int capacity;
-  std::unordered_map<K, std::unique_ptr<CacheItem<K, V>>, Hash, KeyEqual>
-      lookUpTable;
+  cacheItemMap lookUpTable;
   std::shared_mutex tableSMutex;
   List kList;
 };
